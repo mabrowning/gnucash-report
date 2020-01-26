@@ -773,14 +773,6 @@
 	      (add-subtotal-line
                 right-table (_ "Total Equity") #f equity-balance)))
 	  
-	  (add-rule right-table)
-	  
-          (add-subtotal-line
-            right-table
-            (gnc:html-string-sanitize (_ "Total Liabilities & Equity"))
-            #f
-            liability-plus-equity)
-	  
 	  (gnc:html-document-add-object!
 	   doc
 	   (if report-form?

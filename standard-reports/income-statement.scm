@@ -403,11 +403,11 @@
     (define (add-rule table)
       (gnc:html-table-append-ruler! table (* 2 tree-depth)))
 
-    (gnc:html-document-set-title!
-     doc (format #f (string-append "~a ~a " (_ "For Period Covering ~a to ~a"))
-                  company-name report-title
-                  (qof-print-date start-date-printable)
-                  (qof-print-date end-date)))
+    (gnc:html-document-set-title! 
+     doc (format #f
+		  (string-append "~a ~a "
+				 (_ "Offerings and Expenses"))
+		  company-name report-title))
 
     (if (null? accounts)
 
@@ -505,7 +505,7 @@
             (add-subtotal-line inc-table (_ "Revenues") #f #f))
           (gnc:html-table-add-account-balances inc-table revenue-table params)
           (when total-revenue?
-            (add-subtotal-line inc-table (_ "Total Revenue") #f revenue-total))
+            (add-subtotal-line inc-table (_ "Total Offerings") #f revenue-total))
           (gnc:report-percent-done 85)
 
           (when label-expense?
@@ -519,12 +519,6 @@
           (gnc:html-table-add-account-balances tra-table trading-table params)
           (when total-trading?
             (add-subtotal-line tra-table (_ "Total Trading") #f trading-total))
-
-          (add-report-line
-           (if standard-order? exp-table inc-table)
-           (string-append (_ "Net income") period-for)
-           (string-append (_ "Net loss") period-for)
-           net-income (* 2 (1- tree-depth)) exchange-fn #f #f)
 
           ;; add the sections in the desired order to document
           (let ((build-table (gnc:make-html-table))

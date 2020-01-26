@@ -394,8 +394,7 @@
       (gnc:account-get-comm-value-at-date account reportdate #f))
 
     (gnc:html-document-set-title!
-     doc (string-append company-name " " report-title " "
-                        (qof-print-date reportdate)))
+     doc (string-append company-name " " report-title))
 
     (if (null? accounts)
 
@@ -473,10 +472,12 @@
                (equity-table
                 (gnc:make-html-acct-table/env/accts table-env equity-accounts)))
 
+          #|
           (let ((space (make-list tree-depth (gnc:make-html-table-cell/min-width 60))))
             (gnc:html-table-append-row! left-table space)
             (unless report-form?
               (gnc:html-table-append-row! right-table space)))
+          |#
           (gnc:report-percent-done 80)
 
           (when label-assets?
@@ -486,7 +487,6 @@
             (add-subtotal-line left-table (_ "Total Assets") #f asset-balance))
 
           (when report-form?
-            (add-rule left-table)
             (add-rule left-table))
           (gnc:report-percent-done 85)
 
@@ -520,17 +520,6 @@
           (when total-equity?
             (add-subtotal-line
              right-table (_ "Total Equity") #f total-equity-balance))
-
-          (add-rule right-table)
-
-          (unless standard-order?
-            (add-liability-block label-liabilities? right-table table-env
-                                 liability-accounts params
-                                 total-liabilities? liability-balance))
-
-          (add-subtotal-line
-           right-table (gnc:html-string-sanitize (_ "Total Liabilities & Equity"))
-           #f liability-plus-equity)
 
           (gnc:html-document-add-object!
            doc (if report-form?

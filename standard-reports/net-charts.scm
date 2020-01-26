@@ -396,12 +396,12 @@
         chart (append
                (if show-sep?
                    (if inc-exp?
-                       (list (_ "Income") (_ "Expense"))
+                       (list (_ "Offerings") (_ "Expense"))
                        (list (_ "Assets") (_ "Liabilities")))
                    '())
                (if show-net?
                    (if inc-exp?
-                       (list (_ "Net Profit"))
+                       (list (_ "Net"))
                        (list (_ "Net Worth")))
                    '())))
 

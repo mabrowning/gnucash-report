@@ -1299,14 +1299,6 @@ also show overall period profit & loss."))
         (unless (null? expense-accounts)
           (add-to-table multicol-table-right (_ "Expense") expense-accounts))
 
-        (unless (or (null? income-accounts)
-                    (null? expense-accounts))
-          (add-to-table multicol-table-left (_ "Net Income")
-                        income-expense
-                        #:show-accounts? #f
-                        #:negate-amounts? #t
-                        #:force-total? #t))
-
         (if (and common-currency show-rates?)
             (add-to-table multicol-table-left (_ "Exchange Rates")
                           income-expense

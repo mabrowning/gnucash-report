@@ -403,17 +403,17 @@
           (gnc:case-exchange-fn price-source report-commodity end-date))
          (period-for (string-append " " (_ "for Period"))))
 
-    (gnc:html-document-set-title!
-     doc (if (eq? report-variant 'current)
-             (format #f "~a ~a ~a"
-                     company-name report-title
-                     (qof-print-date end-date))
-             (format #f (string-append "~a ~a "
-                                       (_ "For Period Covering ~a to ~a"))
-                     company-name report-title
-                     (qof-print-date start-date-printable)
-                     (qof-print-date end-date))))
-
+    (gnc:html-document-set-title! 
+     doc (if (equal? report-variant 'current)
+	     (format #f (string-append "~a ~a ~a")
+		      company-name report-title
+		      (qof-print-date end-date))
+	     (format #f (string-append "~a ~a "
+					(_ "Offerings and Expenses"))
+		      company-name report-title)
+	     )
+     )
+    
     (if (null? accounts)
 
         ;; error condition: no accounts specified

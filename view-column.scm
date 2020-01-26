@@ -39,11 +39,20 @@
 (gnc:module-load "gnucash/report/report-system" 0)
 (gnc:module-load "gnucash/html" 0) ;for gnc-build-url
 
+(define optname-report-title (N_ "Report Title"))
+(define opthelp-report-title (N_ "Title for this report."))
+
+(define optname-show-options (N_ "Show Options"))
+(define opthelp-show-options (N_ "Show the Edit Options buttons."))
+
 (define (make-options)
   (let* ((options (gnc:new-options))
 	 (opt-register
 	  (lambda (opt)
-	    (gnc:register-option options opt))))
+	    (gnc:register-option options opt)))
+     (add-option 
+      (lambda (new-option)
+        (gnc:register-option options new-option))))
     ;; the report-list is edited by a special add-on page for the
     ;; options editor.
     (opt-register 
@@ -54,6 +63,16 @@
       (N_ "General") (N_ "Number of columns") "a"
       (N_ "Number of columns before wrapping to a new row.")
       1 0 20 0 1))
+
+    (opt-register
+     (gnc:make-string-option 
+      gnc:pagename-general optname-report-title "a"
+      opthelp-report-title (N_ "")))
+
+    (opt-register
+     (gnc:make-simple-boolean-option 
+      gnc:pagename-general optname-show-options "b"
+      opthelp-show-options #f))
     
     options))
 
@@ -74,6 +93,14 @@
 	 (options (gnc:report-options report))
 	 (report-opt (gnc:lookup-option options "__general" "report-list"))
 	 (reports (gnc:option-value report-opt))
+	 (report-title
+	  (gnc:option-value
+	   (gnc:lookup-option 
+	    options gnc:pagename-general optname-report-title)))
+	 (show-options
+	  (gnc:option-value
+	   (gnc:lookup-option 
+	    options gnc:pagename-general optname-show-options)))
 	 (table-width 
 	  (gnc:option-value
 	   (gnc:lookup-option 
@@ -83,6 +110,9 @@
 	 (current-row '())
 	 (current-width 0)
 	 (current-row-num 0))
+
+
+    (gnc:html-document-set-title! view-doc report-title)
 
     ;; make sure each subreport has an option change callback that 
     ;; pings the parent
@@ -158,22 +188,23 @@
 	 (gnc:html-table-append-row! report-table (list contents-cell))
 	 
 	 ;; and a parameter editor link
-	 (gnc:html-table-append-row!
-	  report-table 
-	  (list (gnc:make-html-text 
-		 (gnc:html-markup-anchor
-		  (gnc-build-url
-		   URL-TYPE-OPTIONS
-		   (format #f "report-id=~a" (car report-info))
-		   "")
-		  (_ "Edit Options"))
-		 " "
-		 (gnc:html-markup-anchor
-		  (gnc-build-url
-		   URL-TYPE-REPORT
-		   (format #f "id=~a" (car report-info))
-		   "")
-		  (_ "Single Report")))))
+     (if show-options
+         (gnc:html-table-append-row!
+          report-table 
+          (list (gnc:make-html-text 
+             (gnc:html-markup-anchor
+              (gnc-build-url
+               URL-TYPE-OPTIONS
+               (format #f "report-id=~a" (car report-info))
+               "")
+              (_ "Edit Options"))
+             " "
+             (gnc:html-markup-anchor
+              (gnc-build-url
+               URL-TYPE-REPORT
+               (format #f "id=~a" (car report-info))
+               "")
+              (_ "Single Report"))))))
 
 	 ;; add the report-table to the toplevel-cell
 	 (gnc:html-table-cell-append-objects!

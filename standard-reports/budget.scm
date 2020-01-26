@@ -465,6 +465,7 @@
         (gnc:html-table-prepend-row! html-table '())
         (gnc:html-table-prepend-row! html-table '())
 
+        #|
         (let loop ((column-list column-list)
                    (current-col current-col))
           (unless (null? column-list)
@@ -486,6 +487,7 @@
 
             (loop (cdr column-list)
                   (1+ current-col))))
+        |#
 
         ;; make the column headers
         (let loop ((column-list column-list)
@@ -510,7 +512,8 @@
                  ;; Translators: Abbreviation for "Difference" amount
                  (_ "Diff")))
               (loop (cdr column-list)
-                    col3))))))
+                    col3)))))
+      )
 
     ;; Determines the budget period relative to current period. Budget
     ;; period is current if it start time <= current time and end time
@@ -691,6 +694,7 @@
                    (list 'start-date (gnc:budget-get-start-date budget))
                    (list 'end-date (gnc:budget-get-end-date budget))
                    (list 'display-tree-depth tree-depth)
+                   (list 'account-label-mode 'name)
                    (list 'depth-limit-behavior
                          (if bottom-behavior 'flatten 'summarize))
                    (list 'zero-balance-mode
