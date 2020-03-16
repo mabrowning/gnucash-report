@@ -179,17 +179,6 @@
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (string-expand string character replace-string)
-  (with-output-to-string
-    (lambda ()
-      (string-for-each
-       (lambda (c)
-         (display
-          (if (char=? c character)
-              replace-string
-              c)))
-       string))))
-
 (define (query owner account-list start-date end-date)
   (let* ((q (qof-query-create-for-splits))
          (guid (and owner
@@ -214,6 +203,7 @@
     ;;  guid QOF-QUERY-OR)
     (xaccQueryAddAccountMatch q account-list QOF-GUID-MATCH-ANY QOF-QUERY-AND)
     (xaccQueryAddDateMatchTT q #t start-date #t end-date QOF-QUERY-AND)
+    (xaccQueryAddClosingTransMatch q #f QOF-QUERY-AND)
     (qof-query-set-book q (gnc-get-current-book))
     (let ((result (qof-query-run q)))
       (qof-query-destroy q)
@@ -232,8 +222,7 @@
      'attribute (list "cellspacing" 0)
      'attribute (list "cellpadding" 0))
     (if name (gnc:html-table-append-row! table (list name)))
-    (if addy (gnc:html-table-append-row!
-              table (list (string-expand addy #\newline "<br/>"))))
+    (if addy (gnc:html-table-append-row! table (gnc:multiline-to-html-text addy)))
     (gnc:html-table-append-row!
      table (list (gnc-print-time64 (gnc:get-today) date-format)))
     (let ((table-outer (gnc:make-html-table)))
@@ -262,11 +251,6 @@
                  (member (xaccSplitGetAccount s) accounts))
                splits))))
 
-(define (coll-minus minuend subtrahend)
-  (let ((coll (gnc:make-commodity-collector)))
-    (coll 'merge minuend #f)
-    (coll 'minusmerge subtrahend #f)
-    coll))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -292,9 +276,7 @@
          (expense-accounts (opt-val pagename-expenseaccounts optname-expenseaccounts))
          (sales-accounts (opt-val pagename-incomeaccounts optname-incomeaccounts))
          (all-accounts (append sales-accounts expense-accounts))
-         (commodities (delete-duplicates
-                       (map xaccAccountGetCommodity all-accounts)
-                       gnc-commodity-equiv))
+         (commodities (gnc:accounts-get-commodities all-accounts #f))
          (commodities>1? (> (length commodities) 1))
          (book (gnc-get-current-book))
          (date-format (gnc:options-fancy-date book))
@@ -350,7 +332,7 @@
                                (sales (gnc:commodity-collector-get-negated
                                        (filter-splits splits sales-accounts)))
                                (expense (filter-splits splits expense-accounts))
-                               (profit (coll-minus sales expense)))
+                               (profit (gnc:collector- sales expense)))
                           (list owner profit sales expense)))
                       ownerlist))
             (sortingtable '()))
@@ -405,9 +387,10 @@
 
         ;; Add the "No Customer" lines to the sortingtable for sorting
         ;; as well
-        (let* ((other-sales (coll-minus toplevel-total-sales total-sales))
-               (other-expense (coll-minus toplevel-total-expense total-expense))
-               (other-profit (coll-minus other-sales  other-expense)))
+        (let* ((other-sales (gnc:collector- toplevel-total-sales total-sales))
+               (other-expense (gnc:collector- toplevel-total-expense
+                                                  total-expense))
+               (other-profit (gnc:collector- other-sales other-expense)))
           (for-each
            (lambda (comm)
              (let* ((profit (cadr (other-profit 'getpair comm #f)))
@@ -428,14 +411,14 @@
                (op (if (eq? sort-order 'descend) > <)))
           (define (<? key)
             (case key
-              ;; customername sorting is handled differently;
-              ;; this conditional ensures "No Customer" lines
-              ;; are printed last.
+              ;; customername sorting is handled differently; this
+              ;; conditional ensures "No Customer" entries,
+              ;; i.e. without owner-report url, are printed last.
               ((customername)
                (lambda (a b)
                  (cond
-                  ((string=? (vector-ref b 0) (_ "No Customer")) #t)
-                  ((string=? (vector-ref a 0) (_ "No Customer")) #f)
+                  ((not (vector-ref b 6)) #t)
+                  ((not (vector-ref a 6)) #f)
                   (else (str-op (vector-ref a 0) (vector-ref b 0))))))
               ;; currency sorting always alphabetical a-z
               ((currency)
@@ -481,7 +464,8 @@
                  (gnc:make-html-text (gnc:html-markup/attr/no-end "hr" "noshade")))))
 
         ;; Summary lines - 1 per currency
-        (let ((total-profit (coll-minus toplevel-total-sales toplevel-total-expense)))
+        (let ((total-profit (gnc:collector- toplevel-total-sales
+                                            toplevel-total-expense)))
           (for-each
            (lambda (comm)
              (let* ((profit (cadr (total-profit 'getpair comm #f)))

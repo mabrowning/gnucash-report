@@ -341,12 +341,6 @@ developing over time"))
                   c report-currency
                   (lambda (a b) (exchange-fn a b date)))))))
 
-          (define (collector-minus a b)
-            (let ((coll (gnc:make-commodity-collector)))
-              (coll 'merge a #f)
-              (coll 'minusmerge b #f)
-              coll))
-
           ;; copy of gnc:not-all-zeros using gnc-monetary
           (define (not-all-zeros data)
             (cond ((gnc:gnc-monetary? data) (not (zero? (gnc:gnc-monetary-amount data))))
@@ -361,22 +355,22 @@ developing over time"))
           (define account-balances-alist
             (map
              (lambda (acc)
-               (let ((ignore-closing? (not (gnc:account-is-inc-exp? acc))))
+               (let* ((comm (xaccAccountGetCommodity acc))
+                      (split->elt (if (reverse-balance? acc)
+                                      (lambda (s)
+                                        (gnc:make-gnc-monetary
+                                         comm (- (xaccSplitGetNoclosingBalance s))))
+                                      (lambda (s)
+                                        (gnc:make-gnc-monetary
+                                         comm (xaccSplitGetNoclosingBalance s))))))
                  (cons acc
-                       (map
-                        (if (reverse-balance? acc) gnc:monetary-neg identity)
-                        (gnc:account-get-balances-at-dates
-                         acc dates-list
-                         #:split->amount
-                         (lambda (s)
-                           (and (or ignore-closing?
-                                    (not (xaccTransGetIsClosingTxn
-                                          (xaccSplitGetParent s))))
-                                (xaccSplitGetAmount s))))))))
+                       (gnc:account-accumulate-at-dates
+                        acc dates-list
+                        #:split->elt split->elt
+                        #:nosplit->elt (gnc:make-gnc-monetary comm 0)))))
              ;; all selected accounts (of report-specific type), *and*
              ;; their descendants (of any type) need to be scanned.
-             (delete-duplicates
-              (append accounts (gnc:acccounts-get-all-subaccounts accounts)))))
+             (gnc:accounts-and-all-descendants accounts)))
 
           ;; Creates the <balance-list> to be used in the function
           ;; below.
@@ -402,8 +396,8 @@ developing over time"))
                           (cdr dates-list)
                           (cons (if do-intervals?
                                     (collector->monetary
-                                     (collector-minus (cadr list-of-mon-collectors)
-                                                      (car list-of-mon-collectors))
+                                     (gnc:collector- (cadr list-of-mon-collectors)
+                                                     (car list-of-mon-collectors))
                                      (cadr dates-list))
                                     (collector->monetary
                                      (car list-of-mon-collectors)
@@ -472,9 +466,7 @@ developing over time"))
           ;; needed so as to amortize the cpu time properly.
           (gnc:report-percent-done 1)
           (set! commodity-list (gnc:accounts-get-commodities
-                                (append
-                                 (gnc:acccounts-get-all-subaccounts accounts)
-                                 accounts)
+                                (gnc:accounts-and-all-descendants accounts)
                                 report-currency))
           (set! exchange-fn (gnc:case-exchange-time-fn
                              price-source report-currency
